@@ -1,0 +1,55 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Conda environments
+*.conda
+
+# Pytest and test cache
+.pytest_cache/
+.cache/
+tests/__pycache__/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VSCode settings
+.vscode/
+
+#file storage
+order.json
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Model checkpoints, large data, and outputs
+resource/arat5_intent_model/checkpoint-*/
+resource/arat5_intent_model/*.pt
+resource/arat5_intent_model/*.bin
+resource/arat5_intent_model/*.safetensors
+resource/arat5_intent_model/*.json
+resource/arat5_intent_model/*.pth
+resource/arat5_intent_model/*.mp3
+resource/arat5_intent_model/*.wav
+
+# Logs
+*.log
+
+# System files
+*.swp
+*.swo
+
+# Secrets and environment files
+.env
+.env.*

@@ -1,0 +1,42 @@
+# --- Web framework ---
+fastapi
+uvicorn[standard]
+python-dotenv
+python-multipart
+numpy<2.0
+protobuf<5
+# --- Twilio for call handling ---
+twilio
+
+# --- Ngrok to expose local server ---
+pyngrok
+
+# --- STT (Whisper) ---
+openai-whisper
+torch
+torchaudio
+
+# --- Audio handling ---
+pydub
+ffmpeg-python
+soundfile
+streamlit>=1.32.0
+streamlit-audiorec
+# --- WebSocket support ---
+websockets
+websocket-client
+
+# --- TTS (Pick one or both depending on the API used) ---
+requests
+# For PlayHT or ElevenLabs API
+
+# --- Optional ML/Intent Detection ---
+scikit-learn
+transformers
+
+# --- Others ---
+aiofiles  # for async file I/O (FastAPI uploads)
+playsound
+huggingface_hub
+pytest
+pytest-asyncio
