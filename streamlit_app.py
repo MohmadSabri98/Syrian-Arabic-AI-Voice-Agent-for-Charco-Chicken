@@ -92,57 +92,33 @@ if "history" not in st.session_state:
 if "pending_name_request" not in st.session_state:
     st.session_state["pending_name_request"] = False
 
-# Store audio context
-if "audio_context" not in st.session_state:
-    st.session_state["audio_context"] = "main"
-
 # Tabs for main UI and monitoring
 tabs = st.tabs(["Agent", "Monitoring Dashboard"])
 
 with tabs[0]:
     st.header("Interact with the Voice Agent")
-    input_mode = st.radio("Input mode", ["Audio", "Text"])
-    name = st.text_input("Your Name (optional)")
-    dialog_history = [entry["input"] for entry in st.session_state["history"]]
 
-    # Check if we have a pending name request
     if st.session_state["pending_name_request"]:
         st.info("🎤 The system is asking for your name. Please provide your name via voice or text.")
-        
-        # Name input section
         name_input_mode = st.radio("Name input mode", ["Voice", "Text"], key="name_input_mode_voice")
-        
         if name_input_mode == "Voice":
             st.write("#### Record Your Name")
             try:
                 from st_audiorec import st_audiorec
-                with st.container():
-                    if st.session_state["audio_context"] == "name":
-                        name_audio_bytes = st_audiorec()
-                    else:
-                        name_audio_bytes = None
+                name_audio_bytes = st_audiorec()
                 if name_audio_bytes and st.button("Send Name Audio"):
                     extracted_name, transcription, intent_info = extract_name_from_audio(name_audio_bytes)
                     if extracted_name:
                         name = extracted_name
                         st.success(f"Name extracted: {name}")
                         st.session_state["pending_name_request"] = False
-                        st.session_state["audio_context"] = "main"
-                        
-                        # Update the last history entry with the name
                         if st.session_state["history"]:
                             last_entry = st.session_state["history"][-1]
-                            print(f"DEBUG: Last entry before name update: {last_entry}")
                             last_entry["intent"]["name"] = name
-                            print(f"DEBUG: Last entry after name update: {last_entry}")
-                            
-                            # Re-process the order with the name
                             updated_reply_text, updated_audio_base64, order_success = handle_order_placement(
-                                last_entry["intent"], name, dialog_history, last_entry.get("transcription", "")
+                                last_entry["intent"], name, [entry["input"] for entry in st.session_state["history"]], last_entry.get("transcription", "")
                             )
-                            
                             if order_success:
-                                # Create a new entry for the completed order instead of modifying the original
                                 st.session_state["history"].append({
                                     "input": "[Voice Name]",
                                     "transcription": f"اسمي {name}",
@@ -163,27 +139,18 @@ with tabs[0]:
                         st.error("Could not extract name from audio. Please try again or use text input.")
             except ImportError:
                 st.info("Please install streamlit-audiorec: pip install streamlit-audiorec")
-                name_input_mode = "Text"
-        
-        if name_input_mode == "Text":
+        elif name_input_mode == "Text":
             name_text = st.text_input("Enter your name:", key="name_text_input")
             if st.button("Submit Name") and name_text:
                 name = name_text
                 st.session_state["pending_name_request"] = False
-                st.session_state["audio_context"] = "main"
-                
-                # Update the last history entry with the name
                 if st.session_state["history"]:
                     last_entry = st.session_state["history"][-1]
                     last_entry["intent"]["name"] = name
-                    
-                    # Re-process the order with the name
                     updated_reply_text, updated_audio_base64, order_success = handle_order_placement(
-                        last_entry["intent"], name, dialog_history, last_entry.get("transcription", "")
+                        last_entry["intent"], name, [entry["input"] for entry in st.session_state["history"]], last_entry.get("transcription", "")
                     )
-                    
                     if order_success:
-                        # Create a new entry for the completed order instead of modifying the original
                         st.session_state["history"].append({
                             "input": "[Text Name]",
                             "transcription": f"اسمي {name}",
@@ -200,24 +167,20 @@ with tabs[0]:
                         st.success("Order completed successfully!")
                     else:
                         st.error("Failed to complete order.")
-
-    # Main input section
-    if not st.session_state["pending_name_request"]:
+    else:
+        input_mode = st.radio("Input mode", ["Audio", "Text"])
+        name = st.text_input("Your Name (optional)")
+        dialog_history = [entry["input"] for entry in st.session_state["history"]]
+        # Main input section
         if input_mode == "Audio":
             st.write("#### Record or Upload Audio")
-            # Use streamlit-audiorec for microphone recording
             try:
                 from st_audiorec import st_audiorec
-                with st.container():
-                    if st.session_state["audio_context"] == "main":
-                        audio_bytes = st_audiorec()
-                    else:
-                        audio_bytes = None
+                audio_bytes = st_audiorec()
             except ImportError:
                 st.info("Please install streamlit-audiorec: pip install streamlit-audiorec")
                 audio_bytes = None
             audio_file = st.file_uploader("Upload audio", type=["wav", "mp3"])
-            # Use recorded audio if available, otherwise uploaded file
             audio_to_send = None
             user_audio_base64 = None
             if audio_bytes:
@@ -234,23 +197,18 @@ with tabs[0]:
                     intent_info = data.get("intent", {})
                     reply_text = data.get("reply_text", "")
                     audio_base64 = data.get("audio_base64", "")
-                    
                     # Check if this is a name request
                     if is_name_request(reply_text):
                         st.session_state["pending_name_request"] = True
-                        st.session_state["audio_context"] = "name"
-                    
                     # Handle order placement using the unified function
                     updated_reply_text, updated_audio_base64, order_success = handle_order_placement(
                         intent_info, name, dialog_history, data.get("transcription", "[Audio]")
                     )
-                    
                     if order_success:
                         reply_text = updated_reply_text
                         audio_base64 = updated_audio_base64
                         intent_info["reply_text"] = reply_text
                         st.session_state["pending_name_request"] = False
-                    
                     st.session_state["history"].append({
                         "input": "[Audio]",
                         "transcription": data.get("transcription"),
@@ -265,7 +223,6 @@ with tabs[0]:
         else:
             text_input = st.text_input("Type your message in Arabic")
             if st.button("Send Text") and text_input:
-                # 1. Call backend for intent detection and agent response
                 payload = {"text": text_input}
                 response = requests.post(f"{API_URL}/detect-intent", json=payload)
                 if response.ok:
@@ -273,23 +230,18 @@ with tabs[0]:
                     intent_info = data.get("intent", {})
                     reply_text = data.get("reply_text", "")
                     audio_base64 = data.get("audio_base64", "")
-                    
                     # Check if this is a name request
                     if is_name_request(reply_text):
                         st.session_state["pending_name_request"] = True
-                        st.session_state["audio_context"] = "name"
-                    
                     # Handle order placement using the unified function
                     updated_reply_text, updated_audio_base64, order_success = handle_order_placement(
                         intent_info, name, dialog_history, text_input
                     )
-                    
                     if order_success:
                         reply_text = updated_reply_text
                         audio_base64 = updated_audio_base64
                         intent_info["reply_text"] = reply_text
                         st.session_state["pending_name_request"] = False
-                    
                     st.session_state["history"].append({
                         "input": text_input,
                         "transcription": data.get("transcription", text_input),
