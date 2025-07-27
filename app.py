@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Body
+from fastapi import FastAPI, File, UploadFile, Body, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -22,7 +22,14 @@ except Exception as e:
 PORT = int(os.getenv('PORT', 5050))
 
 # ========== App Setup ==========
-app = FastAPI()
+app = FastAPI(
+    title="Syrian Arabic AI Voice Agent API",
+    description="A simple API for Charco Chicken's Arabic voice assistant. Provides endpoints for voice, order, and intent processing.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,12 +52,21 @@ orders_db = []
 
 # ========== Routes ==========
 
-@app.get("/", response_class=JSONResponse)
+@app.get(
+    "/",
+    summary="Health check",
+    description="Check if the API is running.",
+    response_description="A status message."
+)
 async def health_check():
     return {"message": "Syrian Voice Assistant is running!"}
 
-
-@app.post("/voice-agent", response_class=JSONResponse)
+@app.post(
+    "/voice-agent",
+    summary="Process Arabic audio",
+    description="Takes an audio file in Arabic and returns a transcription, intent, and audio reply.",
+    response_description="A JSON object with transcription, intent, reply_text, and audio_base64."
+)
 async def handle_audio_request(file: UploadFile = File(...)):
     try:
         audio_bytes = await file.read()
@@ -58,11 +74,25 @@ async def handle_audio_request(file: UploadFile = File(...)):
         return response
     except Exception as e:
         print(f"[ERROR] {e}")
-        return JSONResponse({"error": "Internal server error."}, status_code=500)
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
-
-@app.post("/submit-order", response_class=JSONResponse)
-async def submit_order(request: Request):
+@app.post(
+    "/submit-order",
+    summary="Submit a customer order",
+    description="Submit an order with name, items, and optional dialog history.",
+    response_description="Order confirmation with order_id and eta."
+)
+async def submit_order(
+    request: Request,
+    swagger_body: dict = Body(
+        example={
+            "name": "أحمد",
+            "order": ["دجاج مشوي", "بطاطا مقلية"],
+            "dialog_history": ["مرحبا", "أريد طلب دجاج مشوي"]
+        },
+        description="Example order body for Swagger UI. Ignored by backend logic."
+    )
+):
     data = await request.json()
     name = data.get("name")
     order = data.get("order")
@@ -70,10 +100,13 @@ async def submit_order(request: Request):
     response_dict, status_code = order_service.process_order_api_request(name, order, dialog_history)
     return JSONResponse(response_dict, status_code=status_code)
 
-
-@app.get("/list-orders", response_class=JSONResponse)
+@app.get(
+    "/list-orders",
+    summary="List all orders",
+    description="Retrieve all orders from the database.",
+    response_description="A list of all orders."
+)
 async def list_orders():
-    """Get all orders from JSON file"""
     try:
         orders = order_service.list_orders()
         return JSONResponse({
@@ -84,10 +117,13 @@ async def list_orders():
         print(f"[ERROR] {e}")
         return JSONResponse({"error": "Failed to retrieve orders."}, status_code=500)
 
-
-@app.get("/order/{order_id}", response_class=JSONResponse)
+@app.get(
+    "/order/{order_id}",
+    summary="Get order by ID",
+    description="Retrieve a specific order by its Arabic order ID.",
+    response_description="Order details or error if not found."
+)
 async def get_order_by_id(order_id: str):
-    """Get a specific order by ID"""
     try:
         order = order_service.get_order_by_id(order_id)
         if order:
@@ -98,13 +134,22 @@ async def get_order_by_id(order_id: str):
         print(f"[ERROR] {e}")
         return JSONResponse({"error": "Failed to retrieve order."}, status_code=500)
 
-
-@app.post("/detect-intent", response_class=JSONResponse)
+@app.post(
+    "/detect-intent",
+    summary="Detect intent from text",
+    description="Detect user intent from Arabic text input.",
+    response_description="Detected intent and generated reply."
+)
 async def detect_intent_endpoint(text: str = Body(..., embed=True)):
     result = intent_service.process_intent_request(text, voice_agent_service)
     return JSONResponse(result)
 
-@app.post("/tts", response_class=JSONResponse)
+@app.post(
+    "/tts",
+    summary="Text-to-speech",
+    description="Convert Arabic text to speech using ElevenLabs.",
+    response_description="Base64 encoded audio."
+)
 async def tts_endpoint(text: str = Body(..., embed=True)):
     audio_base64 = voice_agent_service.generate_audio(text)
     return JSONResponse({"audio_base64": audio_base64})
