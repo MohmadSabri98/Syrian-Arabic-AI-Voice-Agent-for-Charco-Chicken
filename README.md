@@ -6,7 +6,7 @@ A sophisticated Arabic voice assistant designed specifically for Charco Chicken 
 
 ## 🏗️ High-Level System Architecture
 
-[![View High-Level Architecture](https://drive.google.com/uc?export=view&id=1To3OgRoNI6Tll53A2oXTz2YQOfW34kgv)](https://drive.google.com/file/d/1To3OgRoNI6Tll53A2oXTz2YQOfW34kgv/view?usp=sharing)
+[![View High-Level Architecture](https://drive.google.com/uc?export=view&id=1AgB3V5zWiRIQrDqgvF9VD9VTQd4BVVWp)](https://drive.google.com/file/d/1AgB3V5zWiRIQrDqgvF9VD9VTQd4BVVWp/view?usp=sharing)
 
 > _Click the image above to view the full system architecture diagram on Google Drive._
 
